@@ -42,7 +42,8 @@ def game_node(state: GameState):
     if "GOOGLE_API_KEY" not in os.environ:
         raise ValueError("GOOGLE_API_KEY not found in environment.")
         
-    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash-exp", temperature=0.7)
+    # Trying stable high-performance model
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0.7)
 
     # Construct the context from the state
     context_str = f"""
@@ -62,7 +63,11 @@ def game_node(state: GameState):
     ]
     
     # Add history
-    messages.extend(state.get("history", []))
+    current_history = state.get("history", [])
+    if not current_history:
+        messages.append(HumanMessage(content="Start the game."))
+    else:
+        messages.extend(current_history)
 
     # Invoke the LLM
     response = llm.invoke(messages)
