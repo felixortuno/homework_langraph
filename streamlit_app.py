@@ -31,13 +31,13 @@ def main():
         st.header("Player Status")
         
         # API Key handling
-        if "OPENAI_API_KEY" not in os.environ:
-            api_key = st.text_input("OpenAI API Key", type="password")
+        if "GOOGLE_API_KEY" not in os.environ:
+            api_key = st.text_input("Google API Key", type="password")
             if api_key:
-                os.environ["OPENAI_API_KEY"] = api_key
+                os.environ["GOOGLE_API_KEY"] = api_key
                 st.success("API Key set!")
             else:
-                st.warning("Please enter your API Key to start.")
+                st.warning("Please enter your Google API Key to start.")
                 st.stop()
         
         if "game_state" in st.session_state:

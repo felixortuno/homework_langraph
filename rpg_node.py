@@ -1,8 +1,9 @@
 import json
 from typing import Any, Dict
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import SystemMessage, HumanMessage
 from game_state import GameState
+import os
 
 # Define the system prompt with the RPG engine persona
 SYSTEM_PROMPT = """Actúa como el motor narrativo y evaluador de un RPG de texto para aprender inglés, ambientado en un Londres contemporáneo y realista.
@@ -37,7 +38,11 @@ def game_node(state: GameState):
     The main node that processes the game state and user input using the LLM.
     """
     # Initialize the LLM
-    llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
+    # Using Gemini 1.5 Flash or Pro as standard
+    if "GOOGLE_API_KEY" not in os.environ:
+        raise ValueError("GOOGLE_API_KEY not found in environment.")
+        
+    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash-exp", temperature=0.7)
 
     # Construct the context from the state
     context_str = f"""

@@ -9,12 +9,12 @@ def main():
     print("Initializing game...")
 
     # Check for API Key
-    if "OPENAI_API_KEY" not in os.environ:
-        api_key = input("Please enter your OpenAI API Key: ").strip()
+    if "GOOGLE_API_KEY" not in os.environ:
+        api_key = input("Please enter your Google API Key: ").strip()
         if not api_key:
             print("API Key determines your fate. Exiting.")
             sys.exit(1)
-        os.environ["OPENAI_API_KEY"] = api_key
+        os.environ["GOOGLE_API_KEY"] = api_key
 
     # Initial State
     initial_state = {

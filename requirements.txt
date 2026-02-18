@@ -1,5 +1,5 @@
 langchain
-langchain-openai
+langchain-google-genai
 langgraph
 pydantic
 typing-extensions

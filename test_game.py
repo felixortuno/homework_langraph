@@ -19,8 +19,11 @@ class TestRPGNode(unittest.TestCase):
             "target_language": "English",
             "linguistic_evaluation": None
         }
+        # Mock env var for testing
+        import os
+        os.environ["GOOGLE_API_KEY"] = "fake_key"
 
-    @patch("rpg_node.ChatOpenAI")
+    @patch("rpg_node.ChatGoogleGenerativeAI")
     def test_game_node_success(self, mock_chat):
         # Setup mock LLM response
         mock_llm_instance = MagicMock()
@@ -56,7 +59,7 @@ class TestRPGNode(unittest.TestCase):
         self.assertEqual(result["respect"], 105)
         self.assertEqual(result["location"], "Platform 9 3/4")
         
-    @patch("rpg_node.ChatOpenAI")
+    @patch("rpg_node.ChatGoogleGenerativeAI")
     def test_game_node_damage(self, mock_chat):
         mock_llm_instance = MagicMock()
         mock_chat.return_value = mock_llm_instance
