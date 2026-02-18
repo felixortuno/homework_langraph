@@ -42,8 +42,8 @@ def game_node(state: GameState):
     if "GOOGLE_API_KEY" not in os.environ:
         raise ValueError("GOOGLE_API_KEY not found in environment.")
         
-    # Trying stable high-performance model
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-pro", temperature=0.7)
+    # Fallback to the most reliable standard model
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.7)
 
     # Construct the context from the state
     context_str = f"""
