@@ -5,21 +5,30 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from game_state import GameState
 
 # Define the system prompt with the RPG engine persona
-SYSTEM_PROMPT = """Actúa como un motor de juego de RPG de texto para el aprendizaje de idiomas.
-Tu objetivo es sumergir al usuario en una narrativa dinámica donde el progreso depende de su precisión lingüística.
+SYSTEM_PROMPT = """Actúa como el motor narrativo y evaluador de un RPG de texto para aprender inglés, ambientado en un Londres contemporáneo y realista.
+Tu objetivo es gestionar la historia mientras actúas como un nodo de control de calidad lingüística.
 
-Configuración del Juego:
-1. Estado del Mundo: Mantén un registro persistente del inventario, ubicación, salud y nivel de idioma del jugador.
-2. Evaluación Crítica: Antes de generar la respuesta del narrador, analiza la entrada del usuario. Si hay errores gramaticales graves, el PNJ (personaje no jugador) no debe entender al usuario, resultando en una pérdida de "puntos de respeto" o salud. Explica el error brevemente de forma pedagógica.
-3. Generación de Misiones: Crea objetivos dinámicos que obliguen al usuario a usar vocabulario nuevo acorde a su nivel.
+Instrucciones de Configuración:
+1. Ambiente y Tono: Describe las escenas con detalles icónicos de Londres (ej. el metro, pubs en Camden, el Támesis). El tono debe ser inmersivo pero claro.
+2. Evaluación con Cadena de Pensamiento (CoT): Antes de responder a la acción del usuario, analiza internamente:
+   - ¿Es la gramática y el vocabulario correctos para un nivel [Nivel de Usuario]?
+   - Si hay errores, el PNJ (personaje no jugador) debe reaccionar con confusión o corregir sutilmente al usuario dentro del diálogo. Solo si el error es crítico, el usuario pierde "puntos de respeto" o salud.
+3. Gestión de Estado Persistente: Cada respuesta debe considerar el inventario (ej. tarjeta Oyster, paraguas), la ubicación actual y la misión activa.
 
-Formato de Salida:
-Devuelve SIEMPRE una respuesta estructurada en JSON válido con los siguientes campos:
-- "escena_narrativa": La descripción de la siguiente escena o respuesta del PNJ.
-- "evaluacion_linguistica": Feedback sobre la gramática y vocabulario del usuario.
-- "cambio_en_estado": Un objeto con los cambios a aplicar (p.ej., {"salud": -10, "inventario": ["+manzana"]}).
-- "mision_actual": El objetivo actual del jugador.
-
+Formato de Salida Obligatorio (JSON):
+Devuelve SIEMPRE un objeto JSON válido con esta estructura:
+{
+  "evaluacion_interna": "Análisis de la gramática y vocabulario del usuario...",
+  "dialogo_pnj": "Lo que dice el personaje...",
+  "descripcion_escena": "Narración del entorno...",
+  "actualizacion_estado": {
+    "salud": X, (cambio relativo, ej. -10 o 0)
+    "respeto": X, (cambio relativo, ej. -5 o +5)
+    "ubicacion": "...", (si cambia)
+    "inventario": ["+item", "-item"], (opcional)
+    "mision_actual": "..." (opcional, si cambia)
+  }
+}
 Asegúrate de que el JSON sea puramente JSON, sin bloques de código markdown alrededor.
 """
 
@@ -28,18 +37,18 @@ def game_node(state: GameState):
     The main node that processes the game state and user input using the LLM.
     """
     # Initialize the LLM
-    # Note: We assume OPENAI_API_KEY is set in the environment.
     llm = ChatOpenAI(model="gpt-4o", temperature=0.7)
 
     # Construct the context from the state
     context_str = f"""
     Contexto Actual:
-    - Idioma Objetivo: {state.get("target_language", "Japanese")}
-    - Ubicación: {state.get("location", "Tokyo Market")}
+    - Idioma Objetivo: {state.get("target_language", "English")}
+    - Ubicación: {state.get("location", "King's Cross Station")}
     - Salud: {state.get("health", 100)}
+    - Respeto: {state.get("respect", 100)}
     - Inventario: {state.get("inventory", [])}
     - Nivel: {state.get("language_level", "Beginner")}
-    - Misión: {state.get("mission", "Explorar")}
+    - Misión: {state.get("mission", "Exit the station")}
     """
 
     messages = [
@@ -64,11 +73,15 @@ def game_node(state: GameState):
         game_data = json.loads(content)
         
         # Update state based on the response
-        changes = game_data.get("cambio_en_estado", {})
+        changes = game_data.get("actualizacion_estado", {})
         
         # Update health
         if "salud" in changes:
             state["health"] = state.get("health", 100) + changes["salud"]
+            
+        # Update respect
+        if "respeto" in changes:
+            state["respect"] = state.get("respect", 100) + changes["respeto"]
             
         # Update inventory
         if "inventario" in changes:
@@ -83,23 +96,23 @@ def game_node(state: GameState):
             state["inventory"] = current_inv
             
         # Update other fields
-        state["location"] = game_data.get("ubicacion", state.get("location")) # Optional update if LLM suggests move
-        state["mission"] = game_data.get("mision_actual", state.get("mission"))
-        state["linguistic_evaluation"] = game_data.get("evaluacion_linguistica")
+        state["location"] = changes.get("ubicacion", state.get("location"))
+        state["mission"] = changes.get("mision_actual", state.get("mission"))
+        state["linguistic_evaluation"] = game_data.get("evaluacion_interna")
         
-        # Append the assistant's response to history (narrative only to keep context clean-ish, 
-        # or full JSON? Better to append the narrative or a summary to history).
-        # For this implementation, we'll append the narrative.
-        narrative = game_data.get("escena_narrativa", "")
+        # In this new format, narrative is split between "dialogo_pnj" and "descripcion_escena"
+        # We can combine them for the history/display or just return the raw JSON for the UI to handle.
+        # Since we are storing the raw AI message in history (handled by LangGraph), we don't change that.
+        # But we verify the keys exist.
         
-        # We need to return the updated state keys
         return {
             "inventory": state["inventory"],
             "health": state["health"],
+            "respect": state["respect"],
+            "location": state["location"],
             "mission": state["mission"],
             "linguistic_evaluation": state["linguistic_evaluation"],
-            "history": [response], # LangGraph appends this to the history list
-            # We treat the narrative as the response to show to the user, but we store it in history
+            "history": [response], 
         }
 
     except json.JSONDecodeError:

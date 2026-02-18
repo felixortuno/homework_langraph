@@ -10,6 +10,7 @@ class GameState(TypedDict):
     inventory: List[str]
     location: str
     health: int
+    respect: int  # New field
     language_level: str
     history: Annotated[List[BaseMessage], add_messages]
     mission: str

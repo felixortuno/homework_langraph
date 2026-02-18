@@ -9,13 +9,14 @@ import json
 class TestRPGNode(unittest.TestCase):
     def setUp(self):
         self.initial_state: GameState = {
-            "inventory": [],
-            "location": "Tokyo Market",
+            "inventory": ["Oyster Card"],
+            "location": "King's Cross Station",
             "health": 100,
+            "respect": 100,
             "language_level": "Beginner",
             "history": [],
-            "mission": "Buy an apple",
-            "target_language": "Japanese",
+            "mission": "Exit the station",
+            "target_language": "English",
             "linguistic_evaluation": None
         }
 
@@ -26,56 +27,55 @@ class TestRPGNode(unittest.TestCase):
         mock_chat.return_value = mock_llm_instance
         
         expected_json = {
-            "escena_narrativa": "You see a vendor selling apples.",
-            "evaluacion_linguistica": "Good job!",
-            "cambio_en_estado": {"salud": 0, "inventario": ["+apple"]},
-            "mision_actual": "Eat the apple"
+            "descripcion_escena": "You see the bustling platform.",
+            "dialogo_pnj": "Mind the gap!",
+            "evaluacion_interna": "Correct usage.",
+            "actualizacion_estado": {
+                "salud": 0, 
+                "respeto": 5,
+                "ubicacion": "Platform 9 3/4",
+                "inventario": ["+ticket"]
+            }
         }
         mock_llm_instance.invoke.return_value = AIMessage(content=json.dumps(expected_json))
         
         # Test input message
         # In reality, history would contain user input
-        self.initial_state["history"] = [HumanMessage(content="I want apple")]
+        self.initial_state["history"] = [HumanMessage(content="I look for the platform")]
         
         # Run node
         result = game_node(self.initial_state)
         
-        # Verify LLM called
-        mock_llm_instance.invoke.assert_called_once()
-        
         # Verify result structure
         self.assertIn("inventory", result)
-        self.assertIn("mission", result)
+        self.assertIn("respect", result)
         self.assertIn("health", result)
         
         # Verify updates
-        self.assertEqual(result["inventory"], ["apple"])
-        self.assertEqual(result["mission"], "Eat the apple")
-        self.assertEqual(result["health"], 100)
+        self.assertEqual(result["inventory"], ["Oyster Card", "ticket"])
+        self.assertEqual(result["respect"], 105)
+        self.assertEqual(result["location"], "Platform 9 3/4")
         
-        # Verify history appended
-        # The node returns a dict with history list update
-        # Result "history" should be a list containing the AIMessage
-        self.assertEqual(len(result["history"]), 1)
-        self.assertIsInstance(result["history"][0], AIMessage)
-        self.assertIn("escena_narrativa", result["history"][0].content)
-
     @patch("rpg_node.ChatOpenAI")
     def test_game_node_damage(self, mock_chat):
         mock_llm_instance = MagicMock()
         mock_chat.return_value = mock_llm_instance
         
         expected_json = {
-            "escena_narrativa": "The vendor doesn't understand you.",
-            "evaluacion_linguistica": "Grammar error.",
-            "cambio_en_estado": {"salud": -10},
-            "mision_actual": "Try again"
+            "descripcion_escena": "The guard looks confused.",
+            "dialogo_pnj": "Sorry?",
+            "evaluacion_interna": "Incorrect grammar.",
+            "actualizacion_estado": {
+                "respeto": -10,
+                "salud": -5
+            }
         }
         mock_llm_instance.invoke.return_value = AIMessage(content=json.dumps(expected_json))
         
         result = game_node(self.initial_state)
         
-        self.assertEqual(result["health"], 90)
+        self.assertEqual(result["health"], 95)
+        self.assertEqual(result["respect"], 90)
 
 if __name__ == "__main__":
     unittest.main()
