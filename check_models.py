@@ -8,7 +8,9 @@ load_dotenv()
 
 api_key = os.environ.get("GOOGLE_API_KEY")
 if not api_key:
-    api_key = input("Enter your GOOGLE_API_KEY: ").strip()
+    # api_key = input("Enter your GOOGLE_API_KEY: ").strip()
+    print("GOOGLE_API_KEY not found in environment. Skipping check.")
+    exit(1)
 
 genai.configure(api_key=api_key)
 

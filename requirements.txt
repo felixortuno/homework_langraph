@@ -1,6 +1,6 @@
 langchain
-langchain-google-genai
-google-generativeai
+langchain-google-genai>=1.0.3
+google-generativeai>=0.5.2
 langgraph
 pydantic
 typing-extensions

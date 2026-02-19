@@ -43,7 +43,7 @@ def game_node(state: GameState):
         raise ValueError("GOOGLE_API_KEY not found in environment.")
         
     # Fallback to the original Gemini Pro (1.0) which has widest availability
-    llm = ChatGoogleGenerativeAI(model="gemini-2.0-flash-exp", temperature=0.7)
+    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.7)
 
     # Construct the context from the state
     context_str = f"""
